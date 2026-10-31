@@ -1,0 +1,23 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell",
+            "args": [
+              "-NoProfile",
+              "-ExecutionPolicy",
+              "Bypass",
+              "-File",
+              "C:\\Users\\Chittranjan\\Downloads\\Projects\\TOP DOWN\\.claude\\hooks\\check-docs.ps1"
+            ],
+            "timeout": 30,
+            "statusMessage": "Checking docs are up to date"
+          }
+        ]
+      }
+    ]
+  }
+}

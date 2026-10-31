@@ -1,0 +1,123 @@
+{
+  "1": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": { "ckpt_name": "v1-5-pruned-emaonly.safetensors" },
+    "_meta": { "title": "Base model: Stable Diffusion 1.5" }
+  },
+  "2": {
+    "class_type": "LoraLoader",
+    "inputs": {
+      "model": ["1", 0],
+      "clip": ["1", 1],
+      "lora_name": "PixelArtRedmond-Lite64.safetensors",
+      "strength_model": 1.0,
+      "strength_clip": 1.0
+    },
+    "_meta": { "title": "Pixel-art style LoRA" }
+  },
+  "3": {
+    "class_type": "LoadImage",
+    "inputs": { "image": "character_idle.png", "upload": "image" },
+    "_meta": { "title": "Your sprite (solid flat background, e.g. magenta)" }
+  },
+  "4": {
+    "class_type": "ImageScale",
+    "inputs": {
+      "image": ["3", 0],
+      "upscale_method": "nearest-exact",
+      "width": 384,
+      "height": 384,
+      "crop": "disabled"
+    },
+    "_meta": { "title": "Upscale sprite (nearest keeps hard pixels)" }
+  },
+  "5": {
+    "class_type": "VAEEncode",
+    "inputs": { "pixels": ["4", 0], "vae": ["1", 2] }
+  },
+  "6": {
+    "class_type": "RepeatLatentBatch",
+    "inputs": { "samples": ["5", 0], "amount": 16 },
+    "_meta": { "title": "16 frames, all start from your sprite" }
+  },
+  "7": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "pixel art, game sprite, side view, character walking, walk cycle, simple flat magenta background, limited color palette, clean sharp pixels",
+      "clip": ["2", 1]
+    },
+    "_meta": { "title": "Positive prompt (edit: describe YOUR character + action)" }
+  },
+  "8": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "blurry, smooth, anti-aliased, gradient, photo, realistic, 3d, text, watermark, extra limbs, deformed, different outfit, different colors",
+      "clip": ["2", 1]
+    },
+    "_meta": { "title": "Negative prompt" }
+  },
+  "9": {
+    "class_type": "Canny",
+    "inputs": { "image": ["4", 0], "low_threshold": 0.3, "high_threshold": 0.7 },
+    "_meta": { "title": "Trace the outline of your sprite" }
+  },
+  "10": {
+    "class_type": "RepeatImageBatch",
+    "inputs": { "image": ["9", 0], "amount": 16 },
+    "_meta": { "title": "Same outline for all 16 frames (swap for per-frame poses later)" }
+  },
+  "11": {
+    "class_type": "ControlNetLoader",
+    "inputs": { "control_net_name": "control_v11p_sd15_canny_fp16.safetensors" }
+  },
+  "12": {
+    "class_type": "ControlNetApplyAdvanced",
+    "inputs": {
+      "positive": ["7", 0],
+      "negative": ["8", 0],
+      "control_net": ["11", 0],
+      "image": ["10", 0],
+      "strength": 0.45,
+      "start_percent": 0.0,
+      "end_percent": 0.6,
+      "vae": ["1", 2]
+    },
+    "_meta": { "title": "Outline guide. Lower strength = more motion, higher = more faithful" }
+  },
+  "13": {
+    "class_type": "ADE_AnimateDiffLoaderGen1",
+    "inputs": {
+      "model": ["2", 0],
+      "model_name": "mm_sd_v15_v2.ckpt",
+      "beta_schedule": "autoselect",
+      "motion_scale": 1.0
+    },
+    "_meta": { "title": "AnimateDiff (v2 motion module)" }
+  },
+  "14": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": ["13", 0],
+      "positive": ["12", 0],
+      "negative": ["12", 1],
+      "latent_image": ["6", 0],
+      "seed": 12345,
+      "control_after_generate": "fixed",
+      "steps": 20,
+      "cfg": 7.0,
+      "sampler_name": "euler_ancestral",
+      "scheduler": "normal",
+      "denoise": 0.55
+    },
+    "_meta": { "title": "Sampler (denoise = how much it may change the sprite)" }
+  },
+  "15": {
+    "class_type": "VAEDecode",
+    "inputs": { "samples": ["14", 0], "vae": ["1", 2] }
+  },
+  "16": {
+    "class_type": "SaveImage",
+    "inputs": { "images": ["15", 0], "filename_prefix": "sprite_anim/walk" },
+    "_meta": { "title": "Save PNG frames" }
+  }
+}
